@@ -1,0 +1,24 @@
+# Compiled output directory
+dist/
+
+# Compiled JavaScript files (if not using outDir)
+*.js
+*.js.map
+
+# TypeScript declaration files (if not using outDir)
+*.d.ts
+*.d.ts.map
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Node modules (if you have any)
+node_modules/
+
+# Optional: IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
