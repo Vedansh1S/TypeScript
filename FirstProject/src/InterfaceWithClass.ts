@@ -202,3 +202,64 @@ const parrot = new Bird();
 console.log("\n--- Abstract Implements Interface ---");
 parrot.makeSound(); // From BaseAnimal
 parrot.move(); // From Bird
+
+// ==========================================
+// 7. ANOTHER EXAMPLE (POLYMORPHISM)
+// ==========================================
+
+class Animals {
+  speaks() {}
+}
+
+class Dogs extends Animals {
+  speaks() {
+    console.log("Bark");
+  }
+}
+
+class Cats extends Animals {
+  speaks() {
+    console.log("Meow");
+  }
+}
+
+function makeSound(animal: Animals) {
+  animal.speaks();
+}
+
+makeSound(new Dogs()); // Bark
+makeSound(new Cats()); // Meow
+
+// ==========================================
+// 8. COMPILE-TIME POLYMORPHISM
+// ==========================================
+
+function add(a: number, b: number): number;
+function add(a: string, b: string): string;
+
+function add(a: any, b: any): any {
+  return a + b;
+}
+
+console.log(add(5, 10)); // 15
+console.log(add("Ved", "ansh")); // Vedansh
+
+// ==========================================
+// 8. DEFINING THE CONSTRUCTOR
+// ==========================================
+
+interface UserConstructor {
+  new (name: string, age: number): User;
+}
+
+class User {
+  constructor(public name: string, public age: number) {} //Constructor defination
+}
+
+function createUser(UserClass: UserConstructor) {
+  // checks id the Userclass passes is of userConstructot type
+  return new UserClass("Vedansh", 21); // creating an object of this
+}
+
+const userObj = createUser(User); //calling the createuser function
+console.log(userObj);
