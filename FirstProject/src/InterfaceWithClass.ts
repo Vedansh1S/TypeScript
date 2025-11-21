@@ -1,3 +1,6 @@
+// Note:
+// Original code by Vedansh | Refactored by AI for clarity and best practices.
+
 // ==========================================
 // 1. CLASS IMPLEMENTING AN INTERFACE
 // ==========================================

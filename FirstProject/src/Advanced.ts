@@ -1,3 +1,6 @@
+// Note:
+// Original code by Vedansh | Refactored by AI for clarity and best practices.
+
 // ---- Interfaces ----
 
 // Represents a normal user with name and age
