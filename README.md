@@ -5,6 +5,7 @@ A comprehensive collection of TypeScript tutorial projects and examples covering
 ## Projects
 
 - **FirstProject** - A hands-on exploration of TypeScript fundamentals including:
+
   - Basic types and type annotations
   - Interfaces and type unions
   - Objects and classes
@@ -12,6 +13,8 @@ A comprehensive collection of TypeScript tutorial projects and examples covering
   - Enums
   - Arrow functions and modern syntax
   - Advanced TypeScript features
+
+- **OTP-Generator** - A React + TypeScript application that generates secure one-time passwords with customizable length and alphanumeric options.
 
 ## Getting Started
 
@@ -25,6 +28,9 @@ TypeScriptTutorials/
 │   ├── src/          # TypeScript source files
 │   ├── dist/         # Compiled JavaScript output
 │   └── tsconfig.json # TypeScript configuration
+├── OTP-Generator/    # React + TypeScript OTP generator application
+│   └── src/          # React components and source files
+└── GithubStreakChecker/ # GitHub streak checker application
 ```
 
 ## Note
