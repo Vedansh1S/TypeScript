@@ -1,226 +1,124 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
-// Type definitions
 type Operator = "+" | "-" | "*" | "/" | "=";
-type Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
-type DisplayValue = string;
+type Key = Operator | "." | "AC" | "⌫" | string;
 
-interface ButtonProps {
-  label: string;
-  onClick: () => void;
-  className?: string;
-}
+const ops: Operator[] = ["+", "-", "*", "/", "="];
 
 const Calculator: React.FC = () => {
-  // State for the calculator with explicit types
-  const [display, setDisplay] = useState<DisplayValue>("0");
-  const [firstOperand, setFirstOperand] = useState<number | null>(null);
-  const [operator, setOperator] = useState<Operator | null>(null);
-  const [waitingForSecondOperand, setWaitingForSecondOperand] =
-    useState<boolean>(false);
+  const [display, setDisplay] = useState("0");
+  const [prev, setPrev] = useState<number | null>(null);
+  const [op, setOp] = useState<Operator | null>(null);
+  const [resetNext, setResetNext] = useState(false);
 
-  // Handle number inputs (0-9 and .)
-  const inputDigit = (digit: Digit): void => {
-    if (waitingForSecondOperand) {
+  /* ---------------- Core Logic ---------------- */
+
+  const calculate = (a: number, b: number, operator: Operator): number => {
+    switch (operator) {
+      case "+": return a + b;
+      case "-": return a - b;
+      case "*": return a * b;
+      case "/":
+        if (b === 0) throw new Error("Divide by zero");
+        return a / b;
+      case "=": return b;
+    }
+  };
+
+  const inputDigit = (digit: string) => {
+    if (resetNext) {
       setDisplay(digit);
-      setWaitingForSecondOperand(false);
+      setResetNext(false);
     } else {
       setDisplay(display === "0" ? digit : display + digit);
     }
   };
 
-  const inputDecimal = (): void => {
-    if (waitingForSecondOperand) {
-      setDisplay("0.");
-      setWaitingForSecondOperand(false);
-      return;
-    }
-    if (!display.includes(".")) {
-      setDisplay(display + ".");
-    }
+  const inputDecimal = () => {
+    if (!display.includes(".")) setDisplay(display + ".");
   };
 
-  // Handle Operations (+, -, *, /)
-  const performOperation = (nextOperator: Operator): void => {
-    const inputValue: number = parseFloat(display);
+  const handleOperator = (nextOp: Operator) => {
+    const current = parseFloat(display);
 
-    if (isNaN(inputValue)) {
-      return;
+    if (prev !== null && op) {
+      const result = calculate(prev, current, op);
+      setDisplay(result.toString());
+      setPrev(result);
+    } else {
+      setPrev(current);
     }
 
-    if (firstOperand === null) {
-      setFirstOperand(inputValue);
-    } else if (operator) {
-      try {
-        const result: number = calculate(firstOperand, inputValue, operator);
-        setDisplay(formatResult(result));
-        setFirstOperand(result);
-      } catch (error) {
-        setDisplay("Error");
-        setFirstOperand(null);
-        setOperator(null);
-        setWaitingForSecondOperand(false);
-        return;
-      }
-    }
-
-    setWaitingForSecondOperand(true);
-    setOperator(nextOperator);
+    setOp(nextOp);
+    setResetNext(true);
   };
 
-  // Core Calculation Logic with explicit return type
-  const calculate = (first: number, second: number, op: Operator): number => {
-    switch (op) {
-      case "+":
-        return first + second;
-      case "-":
-        return first - second;
-      case "*":
-        return first * second;
-      case "/":
-        if (second === 0) {
-          throw new Error("Division by zero");
-        }
-        return first / second;
-      case "=":
-        return second; // If = is pressed, just return current input
-      default:
-        // Exhaustive check - TypeScript will error if we miss an operator
-        // This ensures all Operator cases are handled
-        const _exhaustiveCheck: never = op;
-        throw new Error(`Unhandled operator: ${_exhaustiveCheck}`);
-    }
-  };
-
-  // Format result to avoid scientific notation and limit decimal places
-  const formatResult = (value: number): DisplayValue => {
-    if (!isFinite(value)) {
-      return "Error";
-    }
-    // Limit to 10 decimal places and remove trailing zeros
-    return value.toString().includes("e")
-      ? value.toExponential(10)
-      : parseFloat(value.toFixed(10)).toString();
-  };
-
-  // Reset Function (AC)
-  const resetCalculator = (): void => {
+  const clear = () => {
     setDisplay("0");
-    setFirstOperand(null);
-    setOperator(null);
-    setWaitingForSecondOperand(false);
+    setPrev(null);
+    setOp(null);
+    setResetNext(false);
   };
 
-  // Helper to Render Buttons with proper TypeScript interface
-  const Button: React.FC<ButtonProps> = ({
-    label,
-    onClick,
-    className = "",
-  }) => (
-    <button
-      onClick={onClick}
-      className={`h-20 text-2xl font-bold text-white transition-all hover:opacity-90 active:scale-95 rounded-lg ${className}`}
-    >
-      {label}
-    </button>
-  );
+  const backspace = () => {
+    setDisplay(display.length > 1 ? display.slice(0, -1) : "0");
+  };
+
+  /* ---------------- Unified Input ---------------- */
+
+  const handleInput = (key: Key) => {
+    if (!isNaN(Number(key))) inputDigit(key);
+    else if (key === ".") inputDecimal();
+    else if (key === "AC") clear();
+    else if (key === "⌫") backspace();
+    else if (ops.includes(key as Operator)) handleOperator(key as Operator);
+  };
+
+  /* ---------------- Keyboard Support ---------------- */
+
+  useEffect(() => {
+    const listener = (e: KeyboardEvent) => {
+      if (e.key >= "0" && e.key <= "9") handleInput(e.key);
+      else if (e.key === ".") handleInput(".");
+      else if (e.key === "Enter" || e.key === "=") handleInput("=");
+      else if (e.key === "Backspace") handleInput("⌫");
+      else if (e.key === "Escape") handleInput("AC");
+      else if (["+","-","*","/"].includes(e.key)) handleInput(e.key);
+    };
+
+    window.addEventListener("keydown", listener);
+    return () => window.removeEventListener("keydown", listener);
+  }, [display, prev, op]);
+
+  /* ---------------- UI ---------------- */
+
+  const buttons: Key[] = [
+    "AC", "⌫", "/", 
+    "7", "8", "9", "*",
+    "4", "5", "6", "-",
+    "1", "2", "3", "+",
+    "0", ".", "=",
+  ];
 
   return (
-    <div className="w-full max-w-md mx-auto bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border border-gray-800">
-      {/* Display Screen */}
-      <div className="h-32 bg-black/40 p-6 flex items-end justify-end">
-        <div className="text-5xl text-white font-mono tracking-wider truncate w-full text-right">
-          {display}
-        </div>
+    <div className="w-80 mx-auto bg-gray-900 rounded-xl p-4">
+      <div className="h-24 text-right text-4xl text-white font-mono mb-4">
+        {display}
       </div>
 
-      {/* Keypad Grid */}
-      <div className="grid grid-cols-4 gap-1 bg-gray-800 p-1">
-        <Button
-          label="AC"
-          onClick={resetCalculator}
-          className="col-span-3 bg-gray-600 text-red-100"
-        />
-        <Button
-          label="÷"
-          onClick={() => performOperation("/")}
-          className="bg-orange-500"
-        />
-
-        <Button
-          label="7"
-          onClick={() => inputDigit("7")}
-          className="bg-gray-700"
-        />
-        <Button
-          label="8"
-          onClick={() => inputDigit("8")}
-          className="bg-gray-700"
-        />
-        <Button
-          label="9"
-          onClick={() => inputDigit("9")}
-          className="bg-gray-700"
-        />
-        <Button
-          label="×"
-          onClick={() => performOperation("*")}
-          className="bg-orange-500"
-        />
-
-        <Button
-          label="4"
-          onClick={() => inputDigit("4")}
-          className="bg-gray-700"
-        />
-        <Button
-          label="5"
-          onClick={() => inputDigit("5")}
-          className="bg-gray-700"
-        />
-        <Button
-          label="6"
-          onClick={() => inputDigit("6")}
-          className="bg-gray-700"
-        />
-        <Button
-          label="-"
-          onClick={() => performOperation("-")}
-          className="bg-orange-500"
-        />
-
-        <Button
-          label="1"
-          onClick={() => inputDigit("1")}
-          className="bg-gray-700"
-        />
-        <Button
-          label="2"
-          onClick={() => inputDigit("2")}
-          className="bg-gray-700"
-        />
-        <Button
-          label="3"
-          onClick={() => inputDigit("3")}
-          className="bg-gray-700"
-        />
-        <Button
-          label="+"
-          onClick={() => performOperation("+")}
-          className="bg-orange-500"
-        />
-
-        <Button
-          label="0"
-          onClick={() => inputDigit("0")}
-          className="col-span-2 bg-gray-700 rounded-bl-xl"
-        />
-        <Button label="." onClick={inputDecimal} className="bg-gray-700" />
-        <Button
-          label="="
-          onClick={() => performOperation("=")}
-          className="bg-orange-500 rounded-br-xl"
-        />
+      <div className="grid grid-cols-4 gap-2">
+        {buttons.map((b) => (
+          <button
+            key={b}
+            onClick={() => handleInput(b)}
+            className={`h-16 rounded-lg text-xl font-bold
+              ${ops.includes(b as Operator) ? "bg-orange-500" : "bg-gray-700"}
+              ${b === "AC" ? "col-span-2 bg-gray-600" : ""}
+            `}
+          >
+            {b}
+          </button>
+        ))}
       </div>
     </div>
   );
