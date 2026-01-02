@@ -54,7 +54,7 @@ export default function App() {
         <div className="w-full mb-8">
           <form onSubmit={handleSubmit} className="relative group">
             <div className="absolute -inset-0.5 bg-linear-to-r from-indigo-500 to-violet-600 rounded-2xl blur opacity-30 group-hover:opacity-75 transition duration-500"></div>
-            <div className="relative flex bg-slate-900 rounded-2xl p-2 ring-1 ring-white/10 shadow-2xl">
+            <div className="relative flex sm:flex-row flex-col bg-slate-900 rounded-2xl p-2 ring-1 ring-white/10 shadow-2xl">
               <input
                 type="text"
                 value={username}
