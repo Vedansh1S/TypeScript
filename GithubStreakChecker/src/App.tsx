@@ -41,7 +41,7 @@ export default function App() {
       <div className="relative z-10 max-w-2xl mx-auto p-6 flex flex-col items-center pt-20">
         {/* Header */}
         <div className="text-center mb-10 space-y-2">
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white drop-shadow-sm">
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white drop-shadow-md">
             GitHub{" "}
             <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-400 to-violet-400">
               Streak Check
@@ -356,7 +356,6 @@ function Card({
     `}
     >
       {/* Decorative top gradient line */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-transparent via-white/10 to-transparent opacity-50" />
       {children}
     </div>
   );
