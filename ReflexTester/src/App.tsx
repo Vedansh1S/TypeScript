@@ -1,22 +1,45 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { Play, Hand, Zap, AlertCircle, RotateCcw } from 'lucide-react'; // Assumes you have lucide-react or similar
 
-// Define the 5 possible states of the game
 type GameState = 'idle' | 'waiting' | 'ready' | 'success' | 'early';
 
 export default function ReflexGame() {
   const [state, setState] = useState<GameState>('idle');
   const [reactionTime, setReactionTime] = useState<number | null>(null);
-  const [highScore, setHighScore] = useState<number | null>(null);
   
-  // Refs are perfect for timers and timestamps that don't need to trigger re-renders immediately
+  // STATS: High score + Rolling Average (last 5)
+  const [highScore, setHighScore] = useState<number | null>(null);
+  const [history, setHistory] = useState<number[]>([]);
+  
   const timerRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
+
+  // 1. GLOBAL HANDLER: Unified logic for Mouse + Keyboard
+  const handleAction = () => {
+    if (state === 'idle' || state === 'success' || state === 'early') {
+      startGame();
+    } else if (state === 'waiting') {
+      earlyTrigger();
+    } else if (state === 'ready') {
+      successTrigger();
+    }
+  };
+
+  // 2. KEYBOARD SUPPORT: The "Pro" way to play
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault(); // Stop page scroll
+        handleAction();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [state]); // Re-bind based on state changes
 
   const startGame = () => {
     setState('waiting');
     setReactionTime(null);
-    
-    // Random delay between 2 and 5 seconds
     const delay = Math.floor(Math.random() * 3000) + 2000;
     
     timerRef.current = window.setTimeout(() => {
@@ -25,74 +48,81 @@ export default function ReflexGame() {
     }, delay);
   };
 
-  const handleClick = () => {
-    if (state === 'idle' || state === 'success' || state === 'early') {
-      startGame();
-    } else if (state === 'waiting') {
-      // User clicked too early
-      if (timerRef.current) clearTimeout(timerRef.current);
-      setState('early');
-    } else if (state === 'ready') {
-      // User clicked on time
-      const endTime = Date.now();
-      const time = endTime - startTimeRef.current;
-      setReactionTime(time);
-      setState('success');
-      
-      // Update high score (lower is better)
-      if (!highScore || time < highScore) setHighScore(time);
+  const earlyTrigger = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setState('early');
+  };
+
+  const successTrigger = () => {
+    const time = Date.now() - startTimeRef.current;
+    setReactionTime(time);
+    setState('success');
+
+    // Update History (Keep last 5) & High Score
+    setHistory(prev => {
+      const newHistory = [time, ...prev].slice(0, 5);
+      return newHistory;
+    });
+    
+    if (!highScore || time < highScore) setHighScore(time);
+  };
+
+  // Helper for Average Calculation
+  const average = history.length > 0 
+    ? Math.round(history.reduce((a, b) => a + b, 0) / history.length) 
+    : null;
+
+  const getTheme = () => {
+    switch (state) {
+      case 'waiting': return { bg: 'bg-rose-600', icon: <Hand size={64} /> };
+      case 'ready':   return { bg: 'bg-emerald-500', icon: <Zap size={64} /> }; // Shape change
+      case 'early':   return { bg: 'bg-amber-500', icon: <AlertCircle size={64} /> };
+      case 'success': return { bg: 'bg-indigo-600', icon: <RotateCcw size={64} /> };
+      default:        return { bg: 'bg-slate-800', icon: <Play size={64} /> };
     }
   };
 
-  // Dynamic styles based on state
-  const getColors = () => {
-    switch (state) {
-      case 'waiting': return 'bg-rose-600 cursor-wait';
-      case 'ready':   return 'bg-emerald-500 cursor-pointer';
-      case 'early':   return 'bg-amber-500 cursor-pointer';
-      case 'success': return 'bg-indigo-600 cursor-pointer';
-      default:        return 'bg-slate-800 cursor-pointer hover:bg-slate-700';
-    }
-  };
+  const theme = getTheme();
 
   return (
     <div 
-      onClick={handleClick}
-      className={`min-h-screen flex flex-col items-center justify-center transition-colors duration-200 select-none ${getColors()}`}
+      onMouseDown={handleAction}
+      className={`min-h-screen flex flex-col items-center justify-center transition-colors duration-200 select-none cursor-pointer ${theme.bg}`}
     >
-      <div className="text-center text-white space-y-4 p-8">
+      <div className="text-center text-white space-y-6 p-8 max-w-md w-full">
         
-        {/* Main Icon/Text Display */}
-        <div className="text-6xl font-black tracking-tighter">
-          {state === 'idle' && 'START'}
-          {state === 'waiting' && 'WAIT...'}
-          {state === 'ready' && 'CLICK!'}
-          {state === 'early' && 'TOO SOON!'}
-          {state === 'success' && `${reactionTime} ms`}
+        {/* Visual Anchor for Accessibility */}
+        <div className="flex justify-center mb-4 animate-bounce-short">
+            {theme.icon}
         </div>
 
-        {/* Subtext Instructions */}
+        <div className="text-6xl font-black tracking-tighter tabular-nums">
+          {state === 'success' ? `${reactionTime} ms` : (state === 'ready' ? 'CLICK!' : state.toUpperCase())}
+        </div>
+
         <p className="text-xl font-medium opacity-90">
-          {state === 'idle' && 'Click anywhere to begin testing.'}
-          {state === 'waiting' && 'Wait for the green color.'}
-          {state === 'ready' && 'Click now!'}
-          {state === 'early' && 'You clicked before green. Click to retry.'}
-          {state === 'success' && 'Click to try again.'}
+            {state === 'idle' ? 'Press Space or Click to start' : 
+             state === 'waiting' ? 'Wait for Green...' :
+             state === 'ready' ? 'NOW!' :
+             state === 'early' ? 'Too soon! Try again.' : 
+             'Great! Press Space to retry.'}
         </p>
 
-        {/* High Score Badge */}
-        {highScore && (
-          <div className="mt-8 inline-block px-4 py-2 bg-black/20 rounded-full backdrop-blur-sm border border-white/10">
-            <span className="text-sm font-bold uppercase tracking-widest text-white/80">
-              Best: {highScore} ms
-            </span>
-          </div>
-        )}
+        {/* DATA HUD: The Strategy Layer */}
+        <div className="grid grid-cols-2 gap-4 mt-8">
+            <div className="p-4 bg-black/20 rounded-xl backdrop-blur-sm border border-white/10">
+                <div className="text-xs uppercase tracking-widest text-white/60">Best</div>
+                <div className="text-2xl font-bold">{highScore || '-'} ms</div>
+            </div>
+            <div className="p-4 bg-black/20 rounded-xl backdrop-blur-sm border border-white/10">
+                <div className="text-xs uppercase tracking-widest text-white/60">Avg (Last 5)</div>
+                <div className="text-2xl font-bold">{average || '-'} ms</div>
+            </div>
+        </div>
       </div>
       
-      {/* Footer */}
       <div className="fixed bottom-4 text-white/30 text-xs font-mono">
-        ReflexTester v1.0 • React • Tailwind
+        Press [SPACE] for best accuracy
       </div>
     </div>
   );
